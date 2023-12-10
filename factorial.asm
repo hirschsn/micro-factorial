@@ -12,13 +12,14 @@
 start:				; Todo: setup for boot sector (cld, ds, es, etc.)
 	cld
 	;; num and num2 are consecutive in memory
-	;; Initialize number to 1
-	;; mov cx, num_len
-	;; mov di, num
-	;; xor al, al
-	;; rep stosb
-	BZERO num, 2*num_len
-	mov BYTE [num], 1
+	;; Initialize num := 1, num2 := 0
+	mov di, num
+	mov BYTE [di], 1
+	inc di
+	xor al, al
+	mov cx, 2*num_len-1
+	rep stosb
+
 
 	mov ax, 20
 
@@ -38,7 +39,6 @@ for_i:
 	xchg di, si		; Put result in di
 	add di, num_len
 	call printnum
-	call newline
 
 exit:	int 0x20
 	
@@ -52,14 +52,11 @@ exit:	int 0x20
 	;; * dx
 	;; * bx
 multiply_accumulate_with_num:
-	push si
-	push di			; Modified on stack
-	push cx 		; Modified on stack
-	push ax
+	pusha
 	;; Zero out di
 	xor al, al
 	rep stosb
-	pop ax
+	popa
 
 macc_num_loop:
 	xor dx, dx
@@ -67,28 +64,16 @@ macc_num_loop:
 	div bx
 	;; AX := DX:AX / 10
 	;; DX := DX:AX % 10
-	push ax
-
-	mov bx, sp
-	mov si, WORD [bx+6]
-	mov di, WORD [bx+4]
-	mov cx, WORD [bx+2]
+	pusha
 	mov bx, dx		; Remainder
 	call multiply_accumulate_with_digit
-	mov bx, sp
-	dec WORD [bx+2]
-	inc WORD [bx+4]
-	pop ax
+	popa
+	dec cx
+	inc di
 	test ax, ax
-	jnz macc_num_loop
-	
-	pop cx
-	pop di
-	pop si
+	jnz macc_num_loop	
 	ret
-	
-	
-	
+
 	;; Parameters:
 	;; * si: Address of least sig. digit of source BCD number (not preserved)
 	;; * di: Address of least sig. digit of dest BCD number (not preserved)
@@ -114,23 +99,6 @@ mul_loop:
 	loop mul_loop
 	ret
 
-putchar:
-        pusha
-        mov ah, 0x0e
-        mov bx, 0x000f
-        int 0x10
-        popa
-        ret
-
-newline:
-        push ax
-        mov al, 0x0a
-        call putchar
-        mov al, 0x0d
-        call putchar
-        pop ax
-        ret
-
 	;; Parameters:
 	;; * di: address of MSD (not preserved)
 	;; * cx: len (not preserved)
@@ -147,15 +115,19 @@ printnum:
 	;; scasb iterates one past first non-zero element
 	inc di
 	inc cx
+
+	mov ah, 0x0e
+	mov bx, 0x000f
 printnum_loop:
 	mov al, BYTE[di]
 	add al, '0'
-	call putchar
+	int 0x10
 	dec di
 	loop printnum_loop
 	pop ax
 	ret
 
+	;; Data
 num_len:	equ 100
 num:	equ $			; Little-endian, i.e. BYTE [num] == least significant digit
 				;                     BYTE [num+num_len-1] == most sig. digit
