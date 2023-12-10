@@ -1,31 +1,28 @@
 	bits 16
 	org 0x100
 
-	%macro BZERO 2
-	mov cx, %2
-	mov di, %1
-	xor al, al
-	rep stosb
-	%endmacro
-	
 ;;; Multiplication with number <= 28 in BL (BL * 9 must fit into AL)
 start:				; Todo: setup for boot sector (cld, ds, es, etc.)
 	cld
 	;; num and num2 are consecutive in memory
 	;; Initialize num := 1, num2 := 0
 	mov di, num
+	push di
 	mov BYTE [di], 1
 	inc di
 	xor al, al
 	mov cx, 2*num_len-1
 	rep stosb
 
-
-	mov ax, 20
-
-	mov si, num
+	;; si := num
+	;; di := num2
+	pop si
 	mov di, num2
-for_i:
+
+	;; factorial(n)
+	;; ax := n
+	mov ax, 20
+factorial_loop:
 	mov cx, num_len
 	pusha
 	call multiply_accumulate_with_num
@@ -33,11 +30,11 @@ for_i:
 	xchg si, di
 	dec ax
 	test ax, ax
-	jnz for_i
+	jnz factorial_loop
 
 	;; Print result
 	xchg di, si		; Put result in di
-	add di, num_len
+	add di, cx		; Advance di to MSB
 	call printnum
 
 exit:	int 0x20
