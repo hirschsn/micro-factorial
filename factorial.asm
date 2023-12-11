@@ -31,7 +31,6 @@ factorial_loop:
 	call multiply_accumulate_with_num
 	popa
 	dec ax
-	test ax, ax
 	jnz factorial_loop
 
 	;; Print result - result is in di
