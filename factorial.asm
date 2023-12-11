@@ -84,20 +84,16 @@ multiply_accumulate_with_num:
 	jnz .macc_num_loop	
 ;;; End of multiply_accumulate_with_num
 
-
-
-	
 	popa
 	dec ax
 	jnz factorial_loop
-
 
 	;; Print result
 	;; * di: result
 	;; * cx: length
 	add di, cx		; Advance to MSB
 	dec di
-print_and_exit:
+printnum:
 	;; Skip initial zeros
 	std
 	xor al, al
@@ -108,19 +104,19 @@ print_and_exit:
 
 	mov ah, 0x0e
 	mov bx, 0x000f
-printnum_loop:
+.printnum_loop:
 	mov al, BYTE[di]
 	add al, '0'
 	int 0x10
 	dec di
-	loop printnum_loop
-	
+	loop .printnum_loop
+exit:
 	int 0x20
 
 
 
 	;; Data
-num_len:	equ 10000
-num:	equ $			; Little-endian, i.e. BYTE [num] == least significant digit
+num_len equ 10000
+num	equ $			; Little-endian, i.e. BYTE [num] == least significant digit
 				;                     BYTE [num+num_len-1] == most sig. digit
-num2:	equ $+num_len
+num2	equ $+num_len
