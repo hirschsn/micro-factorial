@@ -28,7 +28,65 @@ factorial_loop:
 	xchg si, di
 	mov cx, num_len
 	pusha
-	call multiply_accumulate_with_num
+
+;;; INLINED
+;;; Parameters:
+;;; * si: Address of least sig. digit of source BCD number
+;;; * di: Address of least sig. digit of dest BCD number (not preserved)
+;;; * cx: Length of BCD number in digits (not preserved)
+;;; * ax: Number to multiply with (not preserved)
+;;; Clobbered:
+;;; * dx
+;;; * bx
+multiply_accumulate_with_num:
+	;; Zero out destination
+	pusha
+	xor al, al
+	rep stosb
+	popa
+
+.macc_num_loop:
+	xor dx, dx
+	mov bx, 10
+	div bx
+	;; AX := DX:AX / 10
+	;; DX := DX:AX % 10
+	pusha
+	
+;;; INLINED
+;;; Parameters:
+;;; * si: Address of least sig. digit of source BCD number (not preserved)
+;;; * di: Address of least sig. digit of dest BCD number (not preserved)
+;;; * cx: Length of BCD number in digits (not preserved)
+;;; * dl: Digit to multiply with
+;;; Clobbered:
+;;; * bl
+;;; * ax
+.multiply_accumulate_with_digit:
+	xor bl, bl
+.macc_digit_loop:
+	mov al, BYTE [si]
+	mul dl
+	add al, bl		; Add carry
+	add al, BYTE [di]	; Accumulation
+	aam
+	mov BYTE [di], al
+	mov bl, ah		; Save carry
+	inc si
+	inc di
+	loop .macc_digit_loop
+;;; End of multiply_accumulate_with_digit
+
+	popa
+	dec cx
+	inc di
+	test ax, ax
+	jnz .macc_num_loop	
+;;; End of multiply_accumulate_with_num
+
+
+
+	
 	popa
 	dec ax
 	jnz factorial_loop
@@ -58,62 +116,6 @@ printnum_loop:
 	loop printnum_loop
 	
 	int 0x20
-	
-
-	;; Parameters:
-	;; * si: Address of least sig. digit of source BCD number
-	;; * di: Address of least sig. digit of dest BCD number (not preserved)
-	;; * cx: Length of BCD number in digits (not preserved)
-	;; * ax: Number to multiply with (not preserved)
-	;; Clobbered:
-	;; * dx
-	;; * bx
-multiply_accumulate_with_num:
-	;; Zero out destination
-	pusha
-	xor al, al
-	rep stosb
-	popa
-
-.macc_num_loop:
-	xor dx, dx
-	mov bx, 10
-	div bx
-	;; AX := DX:AX / 10
-	;; DX := DX:AX % 10
-	pusha
-	
-	;; INLINED
-	;; Parameters:
-	;; * si: Address of least sig. digit of source BCD number (not preserved)
-	;; * di: Address of least sig. digit of dest BCD number (not preserved)
-	;; * cx: Length of BCD number in digits (not preserved)
-	;; * dl: Digit to multiply with
-	;; Clobbered:
-	;; * bl
-	;; * ax
-.multiply_accumulate_with_digit:
-	xor bl, bl
-.macc_digit_loop:
-	mov al, BYTE [si]
-	mul dl
-	add al, bl		; Add carry
-	add al, BYTE [di]	; Accumulation
-	aam
-	mov BYTE [di], al
-	mov bl, ah		; Save carry
-	inc si
-	inc di
-	loop .macc_digit_loop
-	;; End of multiply_accumulate_with_digit
-
-	popa
-	dec cx
-	inc di
-	test ax, ax
-	jnz .macc_num_loop	
-	ret
-
 
 
 
