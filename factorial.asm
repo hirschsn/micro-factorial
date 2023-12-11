@@ -95,7 +95,6 @@ multiply_accumulate_with_num:
 .multiply_accumulate_with_digit:
 	xor bl, bl
 .macc_digit_loop:
-	xor ah, ah
 	mov al, BYTE [si]
 	mul dl
 	add al, bl		; Add carry
