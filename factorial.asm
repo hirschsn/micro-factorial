@@ -1,8 +1,27 @@
+;;; Bigint factorial in 100 Bytes.
+;;; DOS program
+;;; Copyright 2023 Steffen Hirschmann
+;;;
+;;; How to set a different input:
+;;; =============================
+;;; Adapt the line following "ax := n" below to set the number.
+;;; To increse the number of possible output digits, change "num_len" at the end of the file.
+;;;
+;;; Build:
+;;; ======
+;;; nasm -f bin factorial.asm -o fact.com
+;;;
+;;; Run:
+;;; ====
+;;; dosbox fact.com
+;;;
+;;;
+;;; This program requires SS, DS, ES to be set up properly (DOS takes care of that).
+;;;
 	bits 16
 	org 0x100
 
-;;; Multiplication with number <= 28 in BL (BL * 9 must fit into AL)
-start:				; Todo: setup for boot sector (cld, ds, es, etc.)
+start:
 	cld
 	;; num and num2 are consecutive in memory
 	;; Initialize num := 1, num2 := 0
@@ -52,7 +71,7 @@ multiply_accumulate_with_num:
 	;; AX := DX:AX / 10
 	;; DX := DX:AX % 10
 	pusha
-	
+
 ;;; INLINED
 ;;; Parameters:
 ;;; * si: Address of least sig. digit of source BCD number (not preserved)
@@ -70,6 +89,8 @@ multiply_accumulate_with_num:
 	add al, bl		; Add carry
 	add al, BYTE [di]	; Accumulation
 	aam
+	;; AL := AL % 10
+	;; AH := AH / 10
 	mov BYTE [di], al
 	mov bl, ah		; Save carry
 	inc si
@@ -81,7 +102,7 @@ multiply_accumulate_with_num:
 	dec cx
 	inc di
 	test ax, ax
-	jnz .macc_num_loop	
+	jnz .macc_num_loop
 ;;; End of multiply_accumulate_with_num
 
 	popa
