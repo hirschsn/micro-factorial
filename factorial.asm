@@ -33,11 +33,31 @@ factorial_loop:
 	dec ax
 	jnz factorial_loop
 
-	;; Print result - result is in di
-	add di, cx		; Advance to MSB
-	call printnum
 
-exit:	int 0x20
+	;; Print result
+	;; * di: result
+	;; * cx: length
+	add di, cx		; Advance to MSB
+	dec di
+print_and_exit:
+	;; Skip initial zeros
+	std
+	xor al, al
+	repe scasb
+	;; scasb iterates one past first non-zero element
+	inc di
+	inc cx
+
+	mov ah, 0x0e
+	mov bx, 0x000f
+printnum_loop:
+	mov al, BYTE[di]
+	add al, '0'
+	int 0x10
+	dec di
+	loop printnum_loop
+	
+	int 0x20
 	
 
 	;; Parameters:
@@ -96,32 +116,6 @@ multiply_accumulate_with_digit:
 	loop .macc_digit_loop
 	ret
 
-	;; Parameters:
-	;; * di: address of MSD (not preserved)
-	;; * cx: len (not preserved)
-	;; Clobbered:
-	;; * ax
-	;; * DF
-	;;
-	;; Number must not be zero-length and must be greater than 0
-printnum:
-	;; Skip initial zeros
-	std
-	xor al, al
-	repe scasb
-	;; scasb iterates one past first non-zero element
-	inc di
-	inc cx
-
-	mov ah, 0x0e
-	mov bx, 0x000f
-printnum_loop:
-	mov al, BYTE[di]
-	add al, '0'
-	int 0x10
-	dec di
-	loop printnum_loop
-	ret
 
 	;; Data
 num_len:	equ 10000
