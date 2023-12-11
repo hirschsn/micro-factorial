@@ -14,27 +14,28 @@ start:				; Todo: setup for boot sector (cld, ds, es, etc.)
 	mov cx, 2*num_len-1
 	rep stosb
 
-	;; si := num
-	;; di := num2
-	pop si
-	mov di, num2
+	;; si := num2
+	;; di := num
+	mov si, num2
+	pop di
 
 	;; factorial(n)
 	;; ax := n
-	mov ax, 20
+	mov ax, 100
 factorial_loop:
+	;; Current partial result in si. di is used as scratch buffer for multiplication.
+	;; To avoid copying, the underlying buffers are switched every iteration.
+	xchg si, di
 	mov cx, num_len
 	pusha
 	call multiply_accumulate_with_num
 	popa
-	xchg si, di
 	dec ax
 	test ax, ax
 	jnz factorial_loop
 
-	;; Print result
-	xchg di, si		; Put result in di
-	add di, cx		; Advance di to MSB
+	;; Print result - result is in di
+	add di, cx		; Advance to MSB
 	call printnum
 
 exit:	int 0x20
@@ -49,13 +50,13 @@ exit:	int 0x20
 	;; * dx
 	;; * bx
 multiply_accumulate_with_num:
+	;; Zero out destination
 	pusha
-	;; Zero out di
 	xor al, al
 	rep stosb
 	popa
 
-macc_num_loop:
+.macc_num_loop:
 	xor dx, dx
 	mov bx, 10
 	div bx
@@ -68,20 +69,20 @@ macc_num_loop:
 	dec cx
 	inc di
 	test ax, ax
-	jnz macc_num_loop	
+	jnz .macc_num_loop	
 	ret
 
 	;; Parameters:
 	;; * si: Address of least sig. digit of source BCD number (not preserved)
 	;; * di: Address of least sig. digit of dest BCD number (not preserved)
-	;; * cx: Length of BCD number in digits
+	;; * cx: Length of BCD number in digits (not preserved)
 	;; * bl: Digit to multiply with
 	;; Clobbered:
 	;; * dl
 	;; * ax
 multiply_accumulate_with_digit:
 	xor dl, dl
-mul_loop:
+.macc_digit_loop:
 	xor ah, ah
 	mov al, BYTE [si]
 	mul bl
@@ -90,21 +91,21 @@ mul_loop:
 	aam
 
 	mov BYTE [di], al
-	mov dl, ah		; BCD Carry
+	mov dl, ah		; Save carry
 	inc si
 	inc di
-	loop mul_loop
+	loop .macc_digit_loop
 	ret
 
 	;; Parameters:
 	;; * di: address of MSD (not preserved)
 	;; * cx: len (not preserved)
 	;; Clobbered:
+	;; * ax
 	;; * DF
 	;;
 	;; Number must not be zero-length and must be greater than 0
 printnum:
-	push ax
 	;; Skip initial zeros
 	std
 	xor al, al
@@ -121,11 +122,10 @@ printnum_loop:
 	int 0x10
 	dec di
 	loop printnum_loop
-	pop ax
 	ret
 
 	;; Data
-num_len:	equ 100
+num_len:	equ 10000
 num:	equ $			; Little-endian, i.e. BYTE [num] == least significant digit
 				;                     BYTE [num+num_len-1] == most sig. digit
 num2:	equ $+num_len
