@@ -18,6 +18,7 @@
 ;;;
 ;;; This program requires SS, DS, ES to be set up properly (DOS takes care of that).
 ;;;
+;;; The algorithm is very inefficient, since it always multiplies all "num_len" digits of the current accumulator (most of the time 0*0=0).
 	bits 16
 	org 0x100
 
@@ -38,7 +39,7 @@ start:
 	mov si, num2
 	pop di
 
-	;; factorial(n)
+	;; factorial(n), n > 0
 	;; ax := n
 	mov ax, 100
 factorial_loop:
@@ -57,6 +58,8 @@ factorial_loop:
 ;;; Clobbered:
 ;;; * dx
 ;;; * bx
+;;;
+;;; Performs the operation: D = S * ax, for BCD numbers D and S, addresses in di and si
 multiply_accumulate_with_num:
 	;; Zero out destination
 	pusha
@@ -81,6 +84,8 @@ multiply_accumulate_with_num:
 ;;; Clobbered:
 ;;; * bl
 ;;; * ax
+;;;
+;;; Performs the operation: D = D + S * dl, for BCD numbers D and S, addresses in di and si
 .multiply_accumulate_with_digit:
 	xor bl, bl
 .macc_digit_loop:
@@ -90,7 +95,7 @@ multiply_accumulate_with_num:
 	add al, BYTE [di]	; Accumulation
 	aam
 	;; AL := AL % 10
-	;; AH := AH / 10
+	;; AH := AL / 10
 	mov BYTE [di], al
 	mov bl, ah		; Save carry
 	inc si
@@ -109,9 +114,14 @@ multiply_accumulate_with_num:
 	dec ax
 	jnz factorial_loop
 
-	;; Print result
-	;; * di: result
-	;; * cx: length
+
+;;; INLINED
+;;; Parameters:
+;;; * di: Address of least sig. digit of BCD number (not preserved)
+;;; * cx: Length of BCD number in digits (not preserved)
+;;; Clobbered:
+;;; * ax
+;;; * DF
 	add di, cx		; Advance to MSB
 	dec di
 printnum:
@@ -119,25 +129,24 @@ printnum:
 	std
 	xor al, al
 	repe scasb
-	;; scasb iterates one past first non-zero element
-	inc di
+	inc di			; Scasb iterates one past last zero
 	inc cx
 
-	mov ah, 0x0e
 	mov bx, 0x000f
 .printnum_loop:
-	mov al, BYTE[di]
-	add al, '0'
+	mov ax, 0x0e30		; AH = 0x0e, AL = 0x30 == '0'; AH does not need to be set inside the loop, but doing so saves 1 Byte
+	add al, BYTE[di]
 	int 0x10
 	dec di
 	loop .printnum_loop
+;;; End of printnum
+
 exit:
 	int 0x20
 
 
-
 	;; Data
-num_len equ 10000
+num_len equ 17000
 num	equ $			; Little-endian, i.e. BYTE [num] == least significant digit
 				;                     BYTE [num+num_len-1] == most sig. digit
 num2	equ $+num_len
