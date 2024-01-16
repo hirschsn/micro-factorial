@@ -96,9 +96,8 @@ multiply_accumulate_with_num:
 	aam
 	;; AL := AL % 10
 	;; AH := AL / 10
-	mov BYTE [di], al
+	stosb
 	mov bl, ah		; Save carry (not a flag, can be larger than 1)
-	inc di
 	loop .macc_digit_loop
 ;;; End of multiply_accumulate_with_digit
 
