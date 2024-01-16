@@ -89,7 +89,7 @@ multiply_accumulate_with_num:
 .multiply_accumulate_with_digit:
 	xor bl, bl
 .macc_digit_loop:
-	mov al, BYTE [si]
+	lodsb
 	mul dl
 	add al, bl		; Add carry
 	add al, BYTE [di]	; Accumulation
@@ -97,8 +97,7 @@ multiply_accumulate_with_num:
 	;; AL := AL % 10
 	;; AH := AL / 10
 	mov BYTE [di], al
-	mov bl, ah		; Save carry
-	inc si
+	mov bl, ah		; Save carry (not a flag, can be larger than 1)
 	inc di
 	loop .macc_digit_loop
 ;;; End of multiply_accumulate_with_digit
