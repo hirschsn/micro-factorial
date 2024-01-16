@@ -28,8 +28,8 @@ start:
 	;; Initialize num := 1, num2 := 0
 	mov di, num
 	push di
-	mov BYTE [di], 1
-	inc di
+	mov al, 1
+	stosb
 	xor al, al
 	mov cx, 2*num_len-1
 	rep stosb
