@@ -127,7 +127,7 @@ printnum:
 	std
 	xor al, al
 	repe scasb
-	inc di			; Scasb iterates one past last zero
+	inc di			; Scasb iterates one past most significant digit
 	inc cx
 
 	mov bx, 0x000f
