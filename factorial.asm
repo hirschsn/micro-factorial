@@ -23,24 +23,26 @@
 	org 0x100
 
 start:
-	cld
+	std
 	;; num and num2 are consecutive in memory
 	;; Initialize num := 1, num2 := 0
-	mov di, num
-	push di
-	mov al, 1
-	stosb
-	xor al, al
+	mov di, num+2*num_len-1
 	mov cx, 2*num_len-1
+	xor al, al
 	rep stosb
+	inc al
+	stosb
+
 
 	;; si := num2
 	;; di := num
 	mov si, num2
-	pop di
+	inc di
+
+	cld
 
 	;; factorial(n), n > 0
-	;; ax := n
+	;; ax := n, max: 2^15 - 1
 	mov ax, 100
 factorial_loop:
 	;; Current partial result in si. di is used as scratch buffer for multiplication.
@@ -68,7 +70,7 @@ multiply_accumulate_with_num:
 	popa
 
 .macc_num_loop:
-	xor dx, dx
+	cwd ;; == xor dx, dx IF ax < 8000h
 	mov bx, 10
 	div bx
 	;; AX := DX:AX / 10
