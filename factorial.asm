@@ -1,4 +1,4 @@
-;;; Bigint factorial in 100 Bytes.
+;;; Bigint factorial in 93 Bytes.
 ;;; DOS program
 ;;; Copyright 2023 Steffen Hirschmann
 ;;;
